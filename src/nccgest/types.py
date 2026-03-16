@@ -1,9 +1,6 @@
 """Type aliases for request/response payloads."""
 
-from __future__ import annotations
-
 from typing import Any, Dict, List, TypedDict
-
 
 JSONDict = Dict[str, Any]
 JSONList = List[Any]
@@ -62,4 +59,3 @@ class UpdateServicePayload(InsertServicePayload, total=False):
     update_note: int
     internal_driverid: int
     smallbags: int
-

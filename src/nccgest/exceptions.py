@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
 
 class NCCGestError(Exception):
@@ -24,7 +24,6 @@ class NCCGestResponseError(NCCGestError):
 class NCCGestAPIError(NCCGestError):
     """API-level error returned by NCCGEST."""
 
-    def __init__(self, message: str, response: Optional[dict] = None) -> None:
+    def __init__(self, message: str, response: Optional[Dict[str, Any]] = None) -> None:
         super().__init__(message)
         self.response = response or {}
-

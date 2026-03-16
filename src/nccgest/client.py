@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import httpx
 
@@ -228,4 +228,3 @@ class AsyncNCCGestClient:
         if not isinstance(data, list):
             raise NCCGestResponseError("Expected `data` to be a list.")
         return data
-
