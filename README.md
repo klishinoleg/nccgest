@@ -4,6 +4,10 @@
 
 Python package for synchronous and asynchronous interaction with the NCCGEST REST API.
 
+Full method-by-method documentation:
+
+- [docs/library_api.ru.md](C:/python/pip/nccgest/docs/library_api.ru.md) (RU)
+
 ## Features
 
 - Sync client: `NCCGestClient`

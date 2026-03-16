@@ -4,6 +4,10 @@
 
 Python-библиотека для синхронной и асинхронной интеграции с REST API NCCGEST.
 
+Полная инструкция по API библиотеки:
+
+- [docs/library_api.ru.md](C:/python/pip/nccgest/docs/library_api.ru.md)
+
 ## Возможности
 
 - Синхронный клиент: `NCCGestClient`
