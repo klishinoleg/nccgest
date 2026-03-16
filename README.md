@@ -107,7 +107,13 @@ nccgest-mock
 Web UI:
 
 - Login page: `http://localhost:8255/admin/login`
+- Services admin: `http://localhost:8255/admin/services`
+- Drivers admin: `http://localhost:8255/admin/drivers`
 - API endpoint: `http://localhost:8255/api/rest_api.php`
 
 The `/data` directory is ignored by git and used for the local SQLite DB.
 Mock YAML fixtures for tests are stored in `tests/mock_data/services.yaml`.
+UI templates and CSS are separated in:
+
+- `src/nccgest/mock_service/templates/*.html`
+- `src/nccgest/mock_service/static/style.css`

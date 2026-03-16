@@ -33,6 +33,42 @@ def test_admin_login_and_list(tmp_path: Path) -> None:
         assert "Services" in services.text
 
 
+def test_admin_drivers_list_and_edit(tmp_path: Path) -> None:
+    app = create_app(_make_settings(tmp_path))
+    with TestClient(app) as client:
+        client.post("/admin/login", data={"username": "test", "password": "test"})
+
+        drivers = client.get("/admin/drivers")
+        assert drivers.status_code == 200
+        assert "Mario Rossi" in drivers.text
+
+        edit_page = client.get("/admin/drivers/101")
+        assert edit_page.status_code == 200
+        assert "Edit driver #101" in edit_page.text
+
+        update_response = client.post(
+            "/admin/drivers/101",
+            data={
+                "name": "Mario",
+                "lastname": "Rossi",
+                "phone_number": "+39123456789",
+                "email": "mario.updated@example.com",
+                "latitude": "41.900",
+                "longitude": "12.500",
+                "speed": "0",
+                "datetime": "16/03/2026 18:00:00",
+            },
+        )
+        assert update_response.status_code == 200
+
+        api_response = client.get(
+            "/api/rest_api.php",
+            params={"dominio": "test", "token": "TEST_TOKEN", "cmd": "cmd_driver", "driverid": 101},
+        )
+        assert api_response.status_code == 200
+        assert api_response.json()["data"][0]["phone_number"] == "+39123456789"
+
+
 def test_mock_rest_api_commands(tmp_path: Path) -> None:
     app = create_app(_make_settings(tmp_path))
     with TestClient(app) as client:

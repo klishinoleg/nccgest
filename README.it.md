@@ -75,7 +75,13 @@ nccgest-mock
 ```
 
 - Web UI (login/lista/modifica): `http://localhost:8255/admin/login`
+- Servizi admin: `http://localhost:8255/admin/services`
+- Driver admin: `http://localhost:8255/admin/drivers`
 - API endpoint: `http://localhost:8255/api/rest_api.php`
 
 La cartella `/data` e ignorata da git e contiene il DB SQLite locale.
 I fixture YAML per i test sono in `tests/mock_data/services.yaml`.
+Template e CSS separati:
+
+- `src/nccgest/mock_service/templates/*.html`
+- `src/nccgest/mock_service/static/style.css`

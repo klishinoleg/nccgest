@@ -269,6 +269,66 @@ def get_driver_by_id(conn: sqlite3.Connection, driverid: int) -> List[Dict[str, 
     return [data]
 
 
+def list_drivers(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    rows = conn.execute("SELECT * FROM drivers ORDER BY id").fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_driver(conn: sqlite3.Connection, driverid: int) -> Optional[Dict[str, Any]]:
+    row = conn.execute("SELECT * FROM drivers WHERE id = ?", (driverid,)).fetchone()
+    if row is None:
+        return None
+    return dict(row)
+
+
+def update_driver(conn: sqlite3.Connection, driverid: int, payload: Dict[str, Any]) -> bool:
+    current = get_driver(conn, driverid)
+    if current is None:
+        return False
+
+    merged = dict(current)
+    for key in [
+        "name",
+        "lastname",
+        "phone_number",
+        "email",
+        "latitude",
+        "longitude",
+        "speed",
+        "datetime",
+    ]:
+        if key in payload and payload[key] is not None:
+            merged[key] = payload[key]
+
+    conn.execute(
+        """
+        UPDATE drivers SET
+            name = :name,
+            lastname = :lastname,
+            phone_number = :phone_number,
+            email = :email,
+            latitude = :latitude,
+            longitude = :longitude,
+            speed = :speed,
+            datetime = :datetime
+        WHERE id = :id
+        """,
+        {
+            "id": driverid,
+            "name": str(merged["name"]),
+            "lastname": str(merged["lastname"]),
+            "phone_number": str(merged["phone_number"]),
+            "email": str(merged["email"]),
+            "latitude": str(merged["latitude"]),
+            "longitude": str(merged["longitude"]),
+            "speed": str(merged["speed"]),
+            "datetime": str(merged["datetime"]),
+        },
+    )
+    conn.commit()
+    return True
+
+
 def upsert_customers(conn: sqlite3.Connection, customers: Iterable[Dict[str, Any]]) -> None:
     for customer in customers:
         conn.execute(
