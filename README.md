@@ -84,3 +84,30 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## Mock Service (FastAPI + SQLite)
+
+Install mock dependencies:
+
+```bash
+pip install -e ".[mock]"
+```
+
+Run:
+
+```bash
+NCCGEST_LOGIN=test NCCGEST_PASSWORD=test NCCGEST_DBDIR=/data NCCGEST_PORT=8255 python -m nccgest.mock_service
+```
+
+Alternative command:
+
+```bash
+nccgest-mock
+```
+
+Web UI:
+
+- Login page: `http://localhost:8255/admin/login`
+- API endpoint: `http://localhost:8255/api/rest_api.php`
+
+The `/data` directory is ignored by git and used for the local SQLite DB.
+Mock YAML fixtures for tests are stored in `tests/mock_data/services.yaml`.

@@ -54,3 +54,28 @@ asyncio.run(main())
 - Выполнять URL encoding входных параметров.
 - Соблюдать методы endpoint-ов из документации (`GET` для read/customer/driver, `POST` для insert/update).
 
+## Mock-сервис (FastAPI + SQLite)
+
+Установка зависимостей:
+
+```bash
+pip install -e ".[mock]"
+```
+
+Запуск:
+
+```bash
+NCCGEST_LOGIN=test NCCGEST_PASSWORD=test NCCGEST_DBDIR=/data NCCGEST_PORT=8255 python -m nccgest.mock_service
+```
+
+Или командой:
+
+```bash
+nccgest-mock
+```
+
+- Web UI (логин/списки/редактирование): `http://localhost:8255/admin/login`
+- API endpoint: `http://localhost:8255/api/rest_api.php`
+
+Каталог `/data` исключен из git и используется для локальной SQLite базы.
+Mock-фикстуры для автотестов лежат в `tests/mock_data/services.yaml`.

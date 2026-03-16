@@ -38,14 +38,30 @@ Repository = "https://github.com/klishinoleg/nccgest"
 Issues = "https://github.com/klishinoleg/nccgest/issues"
 
 [project.optional-dependencies]
+mock = [
+  "fastapi>=0.115,<1",
+  "itsdangerous>=2.2,<3",
+  "uvicorn>=0.35,<1",
+  "PyYAML>=6.0,<7",
+  "python-multipart>=0.0.9",
+]
 dev = [
   "build>=1.2.2",
+  "fastapi>=0.115,<1",
+  "itsdangerous>=2.2,<3",
   "mypy>=1.14.0",
+  "PyYAML>=6.0,<7",
+  "python-multipart>=0.0.9",
   "pytest>=8.3.0",
   "pytest-asyncio>=0.24.0",
   "ruff>=0.8.0",
+  "types-PyYAML>=6.0.12",
   "twine>=6.0.0",
+  "uvicorn>=0.35,<1",
 ]
+
+[project.scripts]
+nccgest-mock = "nccgest.mock_service.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nccgest"]

@@ -1,0 +1,48 @@
+tokens:
+  - token: TEST_TOKEN
+    dominio: test
+
+customers:
+  - ragsoc: "NCCGEST SRLS"
+    address: "Via Roma 1"
+    city: "Roma"
+    province: "RM"
+    postalcode: "00100"
+    email: "info@example.com"
+    piva: "IT12345678901"
+    cf: "CF123456"
+
+drivers:
+  - id: 101
+    name: "Mario"
+    lastname: "Rossi"
+    phone_number: "+39000111222"
+    email: "mario.rossi@example.com"
+    latitude: "41.800"
+    longitude: "12.200"
+    speed: "0"
+    datetime: "16/03/2026 14:03:01"
+
+services:
+  - id: 1
+    date: "16/03/2026"
+    time: "12:30"
+    pickup: "FCO"
+    pickup_address: "Aeroporto di Roma Fiumicino, Terminal 3"
+    dropoff: "Roma"
+    dropoff_address: "Via Nazionale, Roma"
+    transport_number: "AZ123"
+    transport_from: "Milano LIN"
+    status: "Confirmed"
+    pax: 1
+    paxname: "John Smith"
+    paxphone: "+39000000000"
+    subclass: "EXT-1"
+    servicetype: "!!! --- TEST --- !!!"
+    cartype: "Business Class"
+    vehicle_plate: "AB123CD"
+    price: 100
+    vat: 10
+    operator_note: "Seed mock service"
+    service_status: 2
+

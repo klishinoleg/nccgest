@@ -54,3 +54,28 @@ asyncio.run(main())
 - Codificare correttamente i parametri (URL encoding).
 - Rispettare i metodi endpoint della documentazione (`GET` per read/customer/driver, `POST` per insert/update).
 
+## Servizio Mock (FastAPI + SQLite)
+
+Installazione dipendenze:
+
+```bash
+pip install -e ".[mock]"
+```
+
+Avvio:
+
+```bash
+NCCGEST_LOGIN=test NCCGEST_PASSWORD=test NCCGEST_DBDIR=/data NCCGEST_PORT=8255 python -m nccgest.mock_service
+```
+
+Comando alternativo:
+
+```bash
+nccgest-mock
+```
+
+- Web UI (login/lista/modifica): `http://localhost:8255/admin/login`
+- API endpoint: `http://localhost:8255/api/rest_api.php`
+
+La cartella `/data` e ignorata da git e contiene il DB SQLite locale.
+I fixture YAML per i test sono in `tests/mock_data/services.yaml`.

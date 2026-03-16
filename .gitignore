@@ -10,6 +10,7 @@ __pycache__/
 dist/
 build/
 htmlcov/
+data/
 
 # Local/internal materials not for public package
 help/
