@@ -1,0 +1,56 @@
+# nccgest
+
+[English](README.md) | [Italiano](README.it.md) | [Русский](README.ru.md)
+
+Python-библиотека для синхронной и асинхронной интеграции с REST API NCCGEST.
+
+## Возможности
+
+- Синхронный клиент: `NCCGestClient`
+- Асинхронный клиент: `AsyncNCCGestClient`
+- Поддерживаемые команды:
+  - `cmd_read`
+  - `cmd_insert`
+  - `cmd_update`
+  - `cmd_customer`
+  - `cmd_driver`
+- Типизированные ошибки API и HTTP
+- Поддержка Python `3.8+` (рекомендуемый runtime: `3.10+`)
+
+## Установка
+
+```bash
+pip install nccgest
+```
+
+## Быстрый старт (sync)
+
+```python
+from nccgest import NCCGestClient
+
+with NCCGestClient(domain="your-domain", token="YOUR_TOKEN") as client:
+    services = client.read_services(start_date="16/03/2026", end_date="16/03/2026")
+    print(services)
+```
+
+## Быстрый старт (async)
+
+```python
+import asyncio
+from nccgest import AsyncNCCGestClient
+
+async def main() -> None:
+    async with AsyncNCCGestClient(domain="your-domain", token="YOUR_TOKEN") as client:
+        driver_data = await client.get_driver_data(driverid=123)
+        print(driver_data)
+
+asyncio.run(main())
+```
+
+## Примечания по API
+
+- Использовать только HTTPS.
+- Не отправлять вставки услуг параллельно.
+- Выполнять URL encoding входных параметров.
+- Соблюдать методы endpoint-ов из документации (`GET` для read/customer/driver, `POST` для insert/update).
+
