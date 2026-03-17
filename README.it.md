@@ -74,6 +74,14 @@ Comando alternativo:
 nccgest-mock
 ```
 
+Se mancano moduli richiesti per il mock, `nccgest-mock` mostra i comandi di installazione:
+
+```bash
+pip install "nccgest[mock]"
+# oppure per repository locale:
+pip install -e ".[mock]"
+```
+
 - Web UI (login/lista/modifica): `http://localhost:8255/admin/login`
 - Servizi admin: `http://localhost:8255/admin/services`
 - Clienti admin: `http://localhost:8255/admin/customers`

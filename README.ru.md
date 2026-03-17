@@ -78,6 +78,14 @@ NCCGEST_LOGIN=test NCCGEST_PASSWORD=test NCCGEST_DBDIR=/data NCCGEST_PORT=8255 p
 nccgest-mock
 ```
 
+Если не хватает модулей для mock-сервиса, `nccgest-mock` выведет команду установки:
+
+```bash
+pip install "nccgest[mock]"
+# или для локального репозитория:
+pip install -e ".[mock]"
+```
+
 - Web UI (логин/списки/редактирование): `http://localhost:8255/admin/login`
 - Услуги (админка): `http://localhost:8255/admin/services`
 - Клиенты (админка): `http://localhost:8255/admin/customers`

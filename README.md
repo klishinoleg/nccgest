@@ -108,6 +108,14 @@ Alternative command:
 nccgest-mock
 ```
 
+If required mock modules are missing, `nccgest-mock` prints install instructions:
+
+```bash
+pip install "nccgest[mock]"
+# or for local repo:
+pip install -e ".[mock]"
+```
+
 Web UI:
 
 - Login page: `http://localhost:8255/admin/login`
