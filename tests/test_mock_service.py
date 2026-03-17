@@ -156,6 +156,9 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
         service_admin = client.get(f"/admin/services/{serviceid}")
         assert service_admin.status_code == 200
         assert "service_status" in service_admin.text
+        assert 'name="service_status"' in service_admin.text
+        assert "2 - Confirmed" in service_admin.text
+        assert 'name="incasso_serv"' in service_admin.text
 
         customer_response = client.get(
             "/api/rest_api.php",

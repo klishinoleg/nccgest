@@ -13,7 +13,19 @@
       {% if key != "id" %}
       <div class="col-md-4">
         <label class="form-label">{{ key }}</label>
+        {% if key in enum_options %}
+        <select class="form-select form-select-sm" name="{{ key }}">
+          {% for enum_value, enum_label in enum_options[key] %}
+          <option value="{{ enum_value }}" {% if value|string == enum_value %}selected{% endif %}>
+            {{ enum_value }} - {{ enum_label }}
+          </option>
+          {% endfor %}
+        </select>
+        {% elif key == "status" %}
+        <input class="form-control form-control-sm" name="{{ key }}" value="{{ value }}" readonly />
+        {% else %}
         <input class="form-control form-control-sm" name="{{ key }}" value="{{ value }}" />
+        {% endif %}
       </div>
       {% endif %}
     {% endfor %}
@@ -23,4 +35,3 @@
   </div>
 </form>
 {% endblock %}
-

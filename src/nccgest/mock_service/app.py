@@ -34,6 +34,21 @@ from .storage import (
     update_service,
 )
 
+SERVICE_ENUM_OPTIONS: Dict[str, list[tuple[str, str]]] = {
+    "service_status": [("0", "Canceled"), ("1", "Waiting"), ("2", "Confirmed")],
+    "cash": [("0", "Card/Invoice"), ("1", "Cash")],
+    "servincassato": [("0", "Not paid"), ("1", "Partial"), ("2", "Full")],
+    "incasso_serv": [
+        ("0", "Not specified"),
+        ("1", "C/C - Bancomat"),
+        ("2", "Contanti"),
+        ("3", "Incassato in ufficio"),
+        ("4", "Bonifico"),
+    ],
+    "invoice_receipt": [("1", "Invoice"), ("2", "Receipt")],
+    "pets": [("0", "No pets"), ("1", "Pets")],
+}
+
 
 def create_app(settings: Optional[MockSettings] = None) -> FastAPI:
     cfg = settings or MockSettings.from_env()
@@ -121,6 +136,7 @@ def _register_routes(app: FastAPI) -> None:
             "service_edit.html",
             page_title="Edit Service",
             service=service,
+            enum_options=SERVICE_ENUM_OPTIONS,
             active_nav="services",
         )
 
