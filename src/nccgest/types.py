@@ -1,14 +1,67 @@
 """Type aliases for request/response payloads."""
 
-from typing import Any, Dict, List, TypedDict
+from typing import Any, Dict, List, TypedDict, Union
 
 JSONDict = Dict[str, Any]
 JSONList = List[Any]
+IntOrStr = Union[int, str]
+FloatOrInt = Union[float, int]
 
 
 class Passenger(TypedDict, total=False):
     name: str
     phone: str
+
+
+class ReadServiceItem(TypedDict, total=False):
+    id: IntOrStr
+    date: str
+    time: str
+    pickup_address: str
+    dropoff_address: str
+    extra_stop: List[str]
+    transport_number: str
+    transport_from: str
+    status: str
+    status_events: str
+    pax: IntOrStr
+    paxname: str
+    pax_list: List[Passenger]
+    subclass: str
+    cartype: str
+    servicetype: str
+    vehicle_plate: str
+    driver: str
+    external_driver: str
+    ids_supplier: IntOrStr
+    customer_id: IntOrStr
+    customer: str
+    price: FloatOrInt
+    vat: FloatOrInt
+    service_note: str
+
+
+class CustomerDataItem(TypedDict, total=False):
+    id: IntOrStr
+    ragsoc: str
+    address: str
+    city: str
+    province: str
+    postalcode: str
+    email: str
+    piva: str
+    cf: str
+
+
+class DriverDataItem(TypedDict, total=False):
+    name: str
+    lastname: str
+    phone_number: str
+    email: str
+    latitude: str
+    longitude: str
+    speed: str
+    datetime: str
 
 
 class InsertServicePayload(TypedDict, total=False):

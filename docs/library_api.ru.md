@@ -73,6 +73,7 @@ async with AsyncNCCGestClient(domain="...", token="...") as api:
 Выход:
 
 - `list[dict]` - список услуг (`payload["data"]`).
+- По уточнению поддержки NCCGEST: поле `driver` в `cmd_read` всегда строка (или пустая строка), не объект.
 
 Исключения:
 

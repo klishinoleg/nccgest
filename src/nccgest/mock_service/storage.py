@@ -391,16 +391,17 @@ def count_services(conn: sqlite3.Connection) -> int:
 
 def service_row_to_api(row: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        "id": str(row["id"]),
+        "id": row["id"],
         "date": row["date"],
         "time": row["time"],
         "pickup_address": row["pickup_address"],
         "dropoff_address": row["dropoff_address"],
+        "extra_stop": [],
         "transport_number": row["transport_number"],
         "transport_from": row["transport_from"],
         "status": row["status"],
-        "status_events": [],
-        "pax": str(row["pax"]),
+        "status_events": "",
+        "pax": row["pax"],
         "paxname": row["paxname"],
         "pax_list": [{"name": row["paxname"], "phone": row["paxphone"]}] if row["paxname"] else [],
         "subclass": row["subclass"],
@@ -410,10 +411,11 @@ def service_row_to_api(row: Dict[str, Any]) -> Dict[str, Any]:
         "driver": "",
         "external_driver": row.get("external_driver", ""),
         "ids_supplier": row.get("ids_supplier", ""),
-        "customer_id": "",
+        "customer_id": row.get("ids_ccp", ""),
         "customer": "",
         "price": row["price"],
         "vat": row["vat"],
+        "service_note": row.get("service_note", ""),
     }
 
 

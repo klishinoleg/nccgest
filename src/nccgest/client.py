@@ -7,7 +7,14 @@ from typing import Any, List, Optional
 import httpx
 
 from .exceptions import NCCGestAPIError, NCCGestHTTPError, NCCGestResponseError
-from .types import InsertServicePayload, JSONDict, UpdateServicePayload
+from .types import (
+    CustomerDataItem,
+    DriverDataItem,
+    InsertServicePayload,
+    JSONDict,
+    ReadServiceItem,
+    UpdateServicePayload,
+)
 
 DEFAULT_BASE_URL = "https://api.nccgest.com/api/rest_api.php"
 
@@ -79,7 +86,7 @@ class NCCGestClient:
         *,
         subclass: Optional[str] = None,
         paxname: Optional[str] = None,
-    ) -> List[JSONDict]:
+    ) -> List[ReadServiceItem]:
         params = _build_params(
             self.domain,
             "cmd_read",
@@ -118,7 +125,7 @@ class NCCGestClient:
         response = self._client.post(self.base_url, params=params, json=body)
         _parse_response(response)
 
-    def get_customer_data(self, vat: str) -> List[JSONDict]:
+    def get_customer_data(self, vat: str) -> List[CustomerDataItem]:
         params = _build_params(self.domain, "cmd_customer", token=self.token, vat=vat)
         response = self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
@@ -127,7 +134,7 @@ class NCCGestClient:
             raise NCCGestResponseError("Expected `data` to be a list.")
         return data
 
-    def get_driver_data(self, driverid: int) -> List[JSONDict]:
+    def get_driver_data(self, driverid: int) -> List[DriverDataItem]:
         params = _build_params(self.domain, "cmd_driver", token=self.token, driverid=driverid)
         response = self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
@@ -172,7 +179,7 @@ class AsyncNCCGestClient:
         *,
         subclass: Optional[str] = None,
         paxname: Optional[str] = None,
-    ) -> List[JSONDict]:
+    ) -> List[ReadServiceItem]:
         params = _build_params(
             self.domain,
             "cmd_read",
@@ -211,7 +218,7 @@ class AsyncNCCGestClient:
         response = await self._client.post(self.base_url, params=params, json=body)
         _parse_response(response)
 
-    async def get_customer_data(self, vat: str) -> List[JSONDict]:
+    async def get_customer_data(self, vat: str) -> List[CustomerDataItem]:
         params = _build_params(self.domain, "cmd_customer", token=self.token, vat=vat)
         response = await self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
@@ -220,7 +227,7 @@ class AsyncNCCGestClient:
             raise NCCGestResponseError("Expected `data` to be a list.")
         return data
 
-    async def get_driver_data(self, driverid: int) -> List[JSONDict]:
+    async def get_driver_data(self, driverid: int) -> List[DriverDataItem]:
         params = _build_params(self.domain, "cmd_driver", token=self.token, driverid=driverid)
         response = await self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
