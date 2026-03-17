@@ -80,6 +80,7 @@ nccgest-mock
 
 - Web UI (логин/списки/редактирование): `http://localhost:8255/admin/login`
 - Услуги (админка): `http://localhost:8255/admin/services`
+- Клиенты (админка): `http://localhost:8255/admin/customers`
 - Водители (админка): `http://localhost:8255/admin/drivers`
 - API endpoint: `http://localhost:8255/api/rest_api.php`
 

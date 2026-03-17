@@ -76,6 +76,7 @@ nccgest-mock
 
 - Web UI (login/lista/modifica): `http://localhost:8255/admin/login`
 - Servizi admin: `http://localhost:8255/admin/services`
+- Clienti admin: `http://localhost:8255/admin/customers`
 - Driver admin: `http://localhost:8255/admin/drivers`
 - API endpoint: `http://localhost:8255/api/rest_api.php`
 

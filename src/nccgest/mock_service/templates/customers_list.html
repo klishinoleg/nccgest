@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "_admin_header.html" %}
+
+<h1 class="h4 mb-3">Customers</h1>
+<table class="table table-striped table-bordered align-middle">
+  <thead>
+  <tr>
+    <th>ID</th>
+    <th>Company</th>
+    <th>VAT (piva)</th>
+    <th>Email</th>
+    <th></th>
+  </tr>
+  </thead>
+  <tbody>
+  {% for item in customers %}
+  <tr>
+    <td>{{ item.id }}</td>
+    <td>{{ item.ragsoc }}</td>
+    <td>{{ item.piva }}</td>
+    <td>{{ item.email }}</td>
+    <td><a class="btn btn-sm btn-outline-primary" href="/admin/customers/{{ item.id }}">Edit</a></td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="5">No data</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

@@ -31,6 +31,7 @@ def test_admin_login_and_list(tmp_path: Path) -> None:
         services = client.get("/admin/services")
         assert services.status_code == 200
         assert "Services" in services.text
+        assert "customers" in services.text.lower()
 
 
 def test_admin_drivers_list_and_edit(tmp_path: Path) -> None:
@@ -67,6 +68,47 @@ def test_admin_drivers_list_and_edit(tmp_path: Path) -> None:
         )
         assert api_response.status_code == 200
         assert api_response.json()["data"][0]["phone_number"] == "+39123456789"
+
+
+def test_admin_customers_list_and_edit(tmp_path: Path) -> None:
+    app = create_app(_make_settings(tmp_path))
+    with TestClient(app) as client:
+        client.post("/admin/login", data={"username": "test", "password": "test"})
+
+        customers = client.get("/admin/customers")
+        assert customers.status_code == 200
+        assert "NCCGEST SRLS" in customers.text
+
+        edit_page = client.get("/admin/customers/1")
+        assert edit_page.status_code == 200
+        assert "Edit customer #1" in edit_page.text
+
+        update_response = client.post(
+            "/admin/customers/1",
+            data={
+                "ragsoc": "NCCGEST UPDATED",
+                "address": "Via New 10",
+                "city": "Roma",
+                "province": "RM",
+                "postalcode": "00100",
+                "email": "updated@example.com",
+                "piva": "IT12345678901",
+                "cf": "CF123456",
+            },
+        )
+        assert update_response.status_code == 200
+
+        api_response = client.get(
+            "/api/rest_api.php",
+            params={
+                "dominio": "test",
+                "token": "TEST_TOKEN",
+                "cmd": "cmd_customer",
+                "vat": "IT12345678901",
+            },
+        )
+        assert api_response.status_code == 200
+        assert api_response.json()["data"][0]["ragsoc"] == "NCCGEST UPDATED"
 
 
 def test_mock_rest_api_commands(tmp_path: Path) -> None:
@@ -109,6 +151,11 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
         )
         assert update_response.status_code == 200
         assert update_response.json()["success"] is True
+
+        client.post("/admin/login", data={"username": "test", "password": "test"})
+        service_admin = client.get(f"/admin/services/{serviceid}")
+        assert service_admin.status_code == 200
+        assert "service_status" in service_admin.text
 
         customer_response = client.get(
             "/api/rest_api.php",

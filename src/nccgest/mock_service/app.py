@@ -17,15 +17,19 @@ from .seed import seed_if_empty
 from .settings import MockSettings
 from .storage import (
     connect,
+    get_customer,
     get_driver,
     get_driver_by_id,
     get_service,
     init_schema,
     insert_service,
+    list_customers,
     list_customers_by_vat,
     list_drivers,
     list_services,
+    list_services_admin,
     token_exists,
+    update_customer,
     update_driver,
     update_service,
 )
@@ -96,7 +100,7 @@ def _register_routes(app: FastAPI) -> None:
     @login_required
     async def admin_services(request: Request) -> Response:
         db = request.app.state.db
-        items = list_services(db, "00/00/0000", None, None, None)
+        items = list_services_admin(db)
         return _tpl(
             request,
             "services_list.html",
@@ -125,34 +129,10 @@ def _register_routes(app: FastAPI) -> None:
     async def admin_service_update(
         request: Request,
         serviceid: int,
-        pickup: str = Form(...),
-        dropoff: str = Form(...),
-        date: str = Form(...),
-        pickup_time: str = Form(...),
-        pax: int = Form(...),
-        paxname: str = Form(...),
-        paxphone: str = Form(...),
-        subclass: str = Form(""),
-        servicetype: str = Form(""),
-        cartype: str = Form(""),
-        price: float = Form(0),
-        service_status: int = Form(2),
     ) -> RedirectResponse:
         db = request.app.state.db
-        payload = {
-            "pickup": pickup,
-            "dropoff": dropoff,
-            "date": date,
-            "pickup_time": pickup_time,
-            "pax": pax,
-            "paxname": paxname,
-            "paxphone": paxphone,
-            "subclass": subclass,
-            "servicetype": servicetype,
-            "cartype": cartype,
-            "price": price,
-            "service_status": service_status,
-        }
+        form = await request.form()
+        payload = dict(form)
         update_service(db, serviceid, payload)
         return RedirectResponse(url="/admin/services", status_code=303)
 
@@ -189,28 +169,49 @@ def _register_routes(app: FastAPI) -> None:
     async def admin_driver_update(
         request: Request,
         driverid: int,
-        name: str = Form(...),
-        lastname: str = Form(...),
-        phone_number: str = Form(""),
-        email: str = Form(""),
-        latitude: str = Form(""),
-        longitude: str = Form(""),
-        speed: str = Form(""),
-        datetime: str = Form(""),
     ) -> RedirectResponse:
         db = request.app.state.db
-        payload = {
-            "name": name,
-            "lastname": lastname,
-            "phone_number": phone_number,
-            "email": email,
-            "latitude": latitude,
-            "longitude": longitude,
-            "speed": speed,
-            "datetime": datetime,
-        }
+        form = await request.form()
+        payload = dict(form)
         update_driver(db, driverid, payload)
         return RedirectResponse(url="/admin/drivers", status_code=303)
+
+    @app.get("/admin/customers")
+    @login_required
+    async def admin_customers(request: Request) -> Response:
+        db = request.app.state.db
+        items = list_customers(db)
+        return _tpl(
+            request,
+            "customers_list.html",
+            page_title="Customers",
+            customers=items,
+            active_nav="customers",
+        )
+
+    @app.get("/admin/customers/{customerid}")
+    @login_required
+    async def admin_customer_edit(request: Request, customerid: int) -> Response:
+        db = request.app.state.db
+        customer = get_customer(db, customerid)
+        if customer is None:
+            return Response("Not found", status_code=404)
+        return _tpl(
+            request,
+            "customer_edit.html",
+            page_title="Edit Customer",
+            customer=customer,
+            active_nav="customers",
+        )
+
+    @app.post("/admin/customers/{customerid}")
+    @login_required
+    async def admin_customer_update(request: Request, customerid: int) -> RedirectResponse:
+        db = request.app.state.db
+        form = await request.form()
+        payload = dict(form)
+        update_customer(db, customerid, payload)
+        return RedirectResponse(url="/admin/customers", status_code=303)
 
     @app.api_route("/api/rest_api.php", methods=["GET", "POST"])
     async def rest_api(request: Request) -> JSONResponse:
@@ -310,4 +311,3 @@ async def _extract_payload(request: Request) -> Dict[str, Any]:
             form = await request.form()
             data.update(dict(form))
     return data
-

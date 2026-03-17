@@ -112,6 +112,7 @@ Web UI:
 
 - Login page: `http://localhost:8255/admin/login`
 - Services admin: `http://localhost:8255/admin/services`
+- Customers admin: `http://localhost:8255/admin/customers`
 - Drivers admin: `http://localhost:8255/admin/drivers`
 - API endpoint: `http://localhost:8255/api/rest_api.php`
 
