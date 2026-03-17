@@ -239,8 +239,15 @@ def _register_routes(app: FastAPI) -> None:
 
         if not token or not dominio:
             return JSONResponse({"success": False, "error": "Missing token or dominio"})
-        if not token_exists(db, token, dominio):
-            return JSONResponse({"success": False, "error": "Invalid token or dominio"})
+        cmd_token_type = {
+            "cmd_read": "customer",
+            "cmd_insert": "customer",
+            "cmd_update": "customer",
+            "cmd_customer": "master",
+            "cmd_driver": "master",
+        }.get(cmd)
+        if not token_exists(db, token, dominio, required_token_type=cmd_token_type):
+            return JSONResponse({"success": False, "error": "Invalid Token"})
 
         if cmd == "cmd_read":
             start_date = params.get("start_date", "")

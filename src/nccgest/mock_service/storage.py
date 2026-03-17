@@ -106,6 +106,11 @@ DRIVER_COLUMNS: Dict[str, str] = {
     "speed": "TEXT NOT NULL DEFAULT ''",
     "datetime": "TEXT NOT NULL DEFAULT ''",
 }
+API_TOKEN_COLUMNS: Dict[str, str] = {
+    "token": "TEXT PRIMARY KEY",
+    "dominio": "TEXT NOT NULL",
+    "token_type": "TEXT NOT NULL DEFAULT 'both'",
+}
 
 
 def connect(db_path: str) -> sqlite3.Connection:
@@ -116,14 +121,8 @@ def connect(db_path: str) -> sqlite3.Connection:
 
 
 def init_schema(conn: sqlite3.Connection) -> None:
-    conn.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS api_tokens (
-            token TEXT PRIMARY KEY,
-            dominio TEXT NOT NULL
-        );
-        """
-    )
+    _create_table_if_not_exists(conn, "api_tokens", API_TOKEN_COLUMNS)
+    _ensure_columns(conn, "api_tokens", API_TOKEN_COLUMNS)
     _create_table_if_not_exists(conn, "services", SERVICE_COLUMNS)
     _create_table_if_not_exists(conn, "customers", CUSTOMER_COLUMNS)
     _create_table_if_not_exists(conn, "drivers", DRIVER_COLUMNS)
@@ -133,18 +132,35 @@ def init_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def token_exists(conn: sqlite3.Connection, token: str, dominio: str) -> bool:
+def token_exists(
+    conn: sqlite3.Connection,
+    token: str,
+    dominio: str,
+    required_token_type: Optional[str] = None,
+) -> bool:
     row = conn.execute(
-        "SELECT 1 FROM api_tokens WHERE token = ? AND dominio = ? LIMIT 1",
+        "SELECT token_type FROM api_tokens WHERE token = ? AND dominio = ? LIMIT 1",
         (token, dominio),
     ).fetchone()
-    return row is not None
+    if row is None:
+        return False
+    token_type = str(row["token_type"])
+    if required_token_type is None:
+        return True
+    if token_type == "both":
+        return True
+    return token_type == required_token_type
 
 
-def ensure_token(conn: sqlite3.Connection, token: str, dominio: str) -> None:
+def ensure_token(
+    conn: sqlite3.Connection,
+    token: str,
+    dominio: str,
+    token_type: str = "both",
+) -> None:
     conn.execute(
-        "INSERT OR IGNORE INTO api_tokens(token, dominio) VALUES (?, ?)",
-        (token, dominio),
+        "INSERT OR REPLACE INTO api_tokens(token, dominio, token_type) VALUES (?, ?, ?)",
+        (token, dominio, token_type),
     )
     conn.commit()
 
@@ -497,6 +513,15 @@ def _ensure_columns(conn: sqlite3.Connection, table_name: str, columns: Dict[str
             if "PRIMARY KEY" in spec:
                 continue
             conn.execute("ALTER TABLE " + table_name + " ADD COLUMN " + col + " " + spec)
+    if table_name == "api_tokens":
+        rows = conn.execute("SELECT token, dominio, token_type FROM api_tokens").fetchall()
+        for row in rows:
+            token_type = str(row["token_type"])
+            if token_type not in {"customer", "master", "both"}:
+                conn.execute(
+                    "UPDATE api_tokens SET token_type = 'both' WHERE token = ? AND dominio = ?",
+                    (row["token"], row["dominio"]),
+                )
 
 
 def _as_int(value: Any, default: int) -> int:

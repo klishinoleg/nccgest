@@ -15,7 +15,8 @@ def seed_if_empty(conn: sqlite3.Connection, seed_file: str) -> None:
     if storage.count_services(conn) > 0:
         return
     if not os.path.exists(seed_file):
-        storage.ensure_token(conn, "TEST_TOKEN", "test")
+        storage.ensure_token(conn, "TEST_CUSTOMER_TOKEN", "test", token_type="customer")
+        storage.ensure_token(conn, "TEST_MASTER_TOKEN", "test", token_type="master")
         return
 
     with open(seed_file, "r", encoding="utf-8") as f:
@@ -29,8 +30,9 @@ def seed_if_empty(conn: sqlite3.Connection, seed_file: str) -> None:
         if isinstance(item, dict):
             storage.ensure_token(
                 conn,
-                str(item.get("token", "TEST_TOKEN")),
+                str(item.get("token", "TEST_CUSTOMER_TOKEN")),
                 str(item.get("dominio", "test")),
+                str(item.get("token_type", "both")),
             )
 
     services = _as_list(data.get("services"))

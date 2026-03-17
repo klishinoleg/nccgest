@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import List
+
 import httpx
 import pytest
 
-from nccgest import AsyncNCCGestClient, NCCGestAPIError, NCCGestClient
+from nccgest import AsyncNCCGestClient, NCCGestAPIError, NCCGestClient, NCCGestError
 
 
 def test_read_services_sync() -> None:
@@ -67,3 +69,37 @@ async def test_get_driver_async() -> None:
         drivers = await client.get_driver_data(100)
         assert drivers[0]["name"] == "Mario"
 
+
+def test_separate_tokens_sync() -> None:
+    calls: List[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url.params.get("token", "")))
+        cmd = request.url.params["cmd"]
+        if cmd == "cmd_read":
+            return httpx.Response(200, json={"success": True, "data": [], "error": ""})
+        if cmd == "cmd_driver":
+            return httpx.Response(
+                200,
+                json={"success": True, "data": [{"name": "Mario"}], "error": ""},
+            )
+        return httpx.Response(400, json={"success": False, "error": "bad cmd"})
+
+    transport = httpx.MockTransport(handler)
+    with httpx.Client(transport=transport, timeout=5.0) as http_client:
+        client = NCCGestClient(
+            domain="mydomain",
+            customer_token="cust-token",
+            master_token="master-token",
+            client=http_client,
+        )
+        _ = client.read_services("16/03/2026")
+        _ = client.get_driver_data(100)
+
+    assert calls == ["cust-token", "master-token"]
+
+
+def test_missing_master_token_raises() -> None:
+    client = NCCGestClient(domain="mydomain", customer_token="cust-token")
+    with pytest.raises(NCCGestError):
+        _ = client.get_driver_data(1)

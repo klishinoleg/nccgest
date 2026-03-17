@@ -1,6 +1,10 @@
 tokens:
-  - token: TEST_TOKEN
+  - token: TEST_CUSTOMER_TOKEN
     dominio: test
+    token_type: customer
+  - token: TEST_MASTER_TOKEN
+    dominio: test
+    token_type: master
 
 customers:
   - ragsoc: "NCCGEST SRLS"
@@ -45,4 +49,3 @@ services:
     vat: 10
     operator_note: "Seed mock service"
     service_status: 2
-

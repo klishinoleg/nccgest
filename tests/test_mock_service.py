@@ -64,7 +64,12 @@ def test_admin_drivers_list_and_edit(tmp_path: Path) -> None:
 
         api_response = client.get(
             "/api/rest_api.php",
-            params={"dominio": "test", "token": "TEST_TOKEN", "cmd": "cmd_driver", "driverid": 101},
+            params={
+                "dominio": "test",
+                "token": "TEST_MASTER_TOKEN",
+                "cmd": "cmd_driver",
+                "driverid": 101,
+            },
         )
         assert api_response.status_code == 200
         assert api_response.json()["data"][0]["phone_number"] == "+39123456789"
@@ -102,7 +107,7 @@ def test_admin_customers_list_and_edit(tmp_path: Path) -> None:
             "/api/rest_api.php",
             params={
                 "dominio": "test",
-                "token": "TEST_TOKEN",
+                "token": "TEST_MASTER_TOKEN",
                 "cmd": "cmd_customer",
                 "vat": "IT12345678901",
             },
@@ -114,14 +119,23 @@ def test_admin_customers_list_and_edit(tmp_path: Path) -> None:
 def test_mock_rest_api_commands(tmp_path: Path) -> None:
     app = create_app(_make_settings(tmp_path))
     with TestClient(app) as client:
-        base_params = {"dominio": "test", "token": "TEST_TOKEN"}
+        customer_params = {"dominio": "test", "token": "TEST_CUSTOMER_TOKEN"}
+        master_params = {"dominio": "test", "token": "TEST_MASTER_TOKEN"}
 
         read_response = client.get(
             "/api/rest_api.php",
-            params={**base_params, "cmd": "cmd_read", "start_date": "16/03/2026"},
+            params={**customer_params, "cmd": "cmd_read", "start_date": "16/03/2026"},
         )
         assert read_response.status_code == 200
         assert read_response.json()["success"] is True
+
+        wrong_token_response = client.get(
+            "/api/rest_api.php",
+            params={**customer_params, "cmd": "cmd_customer", "vat": "IT12345678901"},
+        )
+        assert wrong_token_response.status_code == 200
+        assert wrong_token_response.json()["success"] is False
+        assert wrong_token_response.json()["error"] == "Invalid Token"
 
         insert_payload = {
             "pickup": "FCO",
@@ -137,7 +151,7 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
         }
         insert_response = client.post(
             "/api/rest_api.php",
-            params={**base_params, "cmd": "cmd_insert"},
+            params={**customer_params, "cmd": "cmd_insert"},
             json=insert_payload,
         )
         assert insert_response.status_code == 200
@@ -146,7 +160,7 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
         update_payload = {"serviceid": serviceid, "paxname": "Alice Updated", "service_status": 2}
         update_response = client.post(
             "/api/rest_api.php",
-            params={**base_params, "cmd": "cmd_update"},
+            params={**customer_params, "cmd": "cmd_update"},
             json=update_payload,
         )
         assert update_response.status_code == 200
@@ -162,14 +176,14 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
 
         customer_response = client.get(
             "/api/rest_api.php",
-            params={**base_params, "cmd": "cmd_customer", "vat": "IT12345678901"},
+            params={**master_params, "cmd": "cmd_customer", "vat": "IT12345678901"},
         )
         assert customer_response.status_code == 200
         assert customer_response.json()["data"][0]["ragsoc"] == "NCCGEST SRLS"
 
         driver_response = client.get(
             "/api/rest_api.php",
-            params={**base_params, "cmd": "cmd_driver", "driverid": 101},
+            params={**master_params, "cmd": "cmd_driver", "driverid": 101},
         )
         assert driver_response.status_code == 200
         assert driver_response.json()["data"][0]["name"] == "Mario"
@@ -180,12 +194,15 @@ def test_sync_client_with_mock_service(tmp_path: Path) -> None:
     with TestClient(app, base_url="http://testserver") as http_client:
         with NCCGestClient(
             domain="test",
-            token="TEST_TOKEN",
+            customer_token="TEST_CUSTOMER_TOKEN",
+            master_token="TEST_MASTER_TOKEN",
             base_url="http://testserver/api/rest_api.php",
             client=http_client,
         ) as api:
             services = api.read_services("16/03/2026")
             assert len(services) >= 1
+            drivers = api.get_driver_data(101)
+            assert drivers[0]["name"] == "Mario"
 
 
 @pytest.mark.asyncio
@@ -195,7 +212,8 @@ async def test_async_client_with_mock_service(tmp_path: Path) -> None:
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as http_client:
         async with AsyncNCCGestClient(
             domain="test",
-            token="TEST_TOKEN",
+            customer_token="TEST_CUSTOMER_TOKEN",
+            master_token="TEST_MASTER_TOKEN",
             base_url="http://testserver/api/rest_api.php",
             client=http_client,
         ) as api:

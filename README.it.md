@@ -33,6 +33,27 @@ with NCCGestClient(domain="your-domain", token="YOUR_TOKEN") as client:
     print(services)
 ```
 
+## Tipi di token
+
+Secondo il supporto NCCGEST:
+
+- `cmd_read`, `cmd_insert`, `cmd_update` richiedono **Customer Token**
+- `cmd_customer`, `cmd_driver` richiedono **Master Token**
+
+Nel client puoi passarli separatamente:
+
+```python
+from nccgest import NCCGestClient
+
+client = NCCGestClient(
+    domain="your-domain",
+    customer_token="CUSTOMER_TOKEN",
+    master_token="MASTER_TOKEN",
+)
+```
+
+Compatibilita retroattiva: `token=...` viene usato per entrambi i tipi.
+
 ## Esempio rapido (async)
 
 ```python

@@ -32,7 +32,9 @@ from nccgest import NCCGestClient, AsyncNCCGestClient
 Параметры:
 
 - `domain: str` - значение `dominio` для NCCGEST.
-- `token: str` - API токен.
+- `token: str | None` - общий токен для обоих типов (обратная совместимость).
+- `customer_token: str | None` - токен для `cmd_read`, `cmd_insert`, `cmd_update`.
+- `master_token: str | None` - токен для `cmd_customer`, `cmd_driver`.
 - `base_url: str = "https://api.nccgest.com/api/rest_api.php"` - endpoint API.
 - `timeout: float = 30.0` - timeout HTTP клиента.
 - `client: httpx.Client | None = None` - внешний клиент (опционально).
@@ -54,6 +56,15 @@ with NCCGestClient(domain="...", token="...") as api:
 async with AsyncNCCGestClient(domain="...", token="...") as api:
     ...
 ```
+
+## Типы токенов NCCGEST
+
+По ответу поддержки NCCGEST:
+
+- `cmd_read`, `cmd_insert`, `cmd_update` используют **Customer Token**
+- `cmd_customer`, `cmd_driver` используют **Master Token**
+
+Рекомендуется передавать токены раздельно через `customer_token` и `master_token`.
 
 ## Методы библиотеки
 
@@ -250,7 +261,11 @@ import asyncio
 from nccgest import AsyncNCCGestClient
 
 async def main() -> None:
-    async with AsyncNCCGestClient(domain="test", token="TEST_TOKEN") as api:
+    async with AsyncNCCGestClient(
+        domain="test",
+        customer_token="TEST_CUSTOMER_TOKEN",
+        master_token="TEST_MASTER_TOKEN",
+    ) as api:
         services = await api.read_services("16/03/2026")
         print("services:", len(services))
 

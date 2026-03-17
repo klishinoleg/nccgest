@@ -6,7 +6,7 @@ from typing import Any, List, Optional
 
 import httpx
 
-from .exceptions import NCCGestAPIError, NCCGestHTTPError, NCCGestResponseError
+from .exceptions import NCCGestAPIError, NCCGestError, NCCGestHTTPError, NCCGestResponseError
 from .types import (
     CustomerDataItem,
     DriverDataItem,
@@ -57,14 +57,18 @@ class NCCGestClient:
     def __init__(
         self,
         domain: str,
-        token: str,
+        token: Optional[str] = None,
         *,
+        customer_token: Optional[str] = None,
+        master_token: Optional[str] = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = 30.0,
         client: Optional[httpx.Client] = None,
     ) -> None:
         self.domain = domain
-        self.token = token
+        # Backward compatibility: if only `token` is provided, it is used for both token types.
+        self.customer_token = customer_token or token
+        self.master_token = master_token or token
         self.base_url = base_url
         self._owns_client = client is None
         self._client = client or httpx.Client(timeout=timeout)
@@ -90,7 +94,7 @@ class NCCGestClient:
         params = _build_params(
             self.domain,
             "cmd_read",
-            token=self.token,
+            token=self._require_token("customer"),
             start_date=start_date,
             end_date=end_date,
             subclass=subclass,
@@ -105,8 +109,8 @@ class NCCGestClient:
 
     def insert_service(self, service: InsertServicePayload) -> int:
         body: JSONDict = dict(service)
-        body["token"] = self.token
-        params = _build_params(self.domain, "cmd_insert", token=self.token)
+        body["token"] = self._require_token("customer")
+        params = _build_params(self.domain, "cmd_insert", token=self._require_token("customer"))
         response = self._client.post(self.base_url, params=params, json=body)
         payload = _parse_response(response)
         service_id = payload.get("serviceid")
@@ -120,13 +124,18 @@ class NCCGestClient:
     def update_service(self, serviceid: int, service: UpdateServicePayload) -> None:
         body: JSONDict = dict(service)
         body["serviceid"] = serviceid
-        body["token"] = self.token
-        params = _build_params(self.domain, "cmd_update", token=self.token)
+        body["token"] = self._require_token("customer")
+        params = _build_params(self.domain, "cmd_update", token=self._require_token("customer"))
         response = self._client.post(self.base_url, params=params, json=body)
         _parse_response(response)
 
     def get_customer_data(self, vat: str) -> List[CustomerDataItem]:
-        params = _build_params(self.domain, "cmd_customer", token=self.token, vat=vat)
+        params = _build_params(
+            self.domain,
+            "cmd_customer",
+            token=self._require_token("master"),
+            vat=vat,
+        )
         response = self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
         data = payload.get("data", [])
@@ -135,13 +144,35 @@ class NCCGestClient:
         return data
 
     def get_driver_data(self, driverid: int) -> List[DriverDataItem]:
-        params = _build_params(self.domain, "cmd_driver", token=self.token, driverid=driverid)
+        params = _build_params(
+            self.domain,
+            "cmd_driver",
+            token=self._require_token("master"),
+            driverid=driverid,
+        )
         response = self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
         data = payload.get("data", [])
         if not isinstance(data, list):
             raise NCCGestResponseError("Expected `data` to be a list.")
         return data
+
+    def _require_token(self, token_type: str) -> str:
+        if token_type == "customer":
+            if not self.customer_token:
+                raise NCCGestError(
+                    "Customer token is required for cmd_read/cmd_insert/cmd_update. "
+                    "Pass `customer_token=...` (or `token=...` for backward compatibility)."
+                )
+            return self.customer_token
+        if token_type == "master":
+            if not self.master_token:
+                raise NCCGestError(
+                    "Master token is required for cmd_customer/cmd_driver. "
+                    "Pass `master_token=...` (or `token=...` for backward compatibility)."
+                )
+            return self.master_token
+        raise NCCGestError("Unknown token type: " + token_type)
 
 
 class AsyncNCCGestClient:
@@ -150,14 +181,18 @@ class AsyncNCCGestClient:
     def __init__(
         self,
         domain: str,
-        token: str,
+        token: Optional[str] = None,
         *,
+        customer_token: Optional[str] = None,
+        master_token: Optional[str] = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = 30.0,
         client: Optional[httpx.AsyncClient] = None,
     ) -> None:
         self.domain = domain
-        self.token = token
+        # Backward compatibility: if only `token` is provided, it is used for both token types.
+        self.customer_token = customer_token or token
+        self.master_token = master_token or token
         self.base_url = base_url
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout)
@@ -183,7 +218,7 @@ class AsyncNCCGestClient:
         params = _build_params(
             self.domain,
             "cmd_read",
-            token=self.token,
+            token=self._require_token("customer"),
             start_date=start_date,
             end_date=end_date,
             subclass=subclass,
@@ -198,8 +233,8 @@ class AsyncNCCGestClient:
 
     async def insert_service(self, service: InsertServicePayload) -> int:
         body: JSONDict = dict(service)
-        body["token"] = self.token
-        params = _build_params(self.domain, "cmd_insert", token=self.token)
+        body["token"] = self._require_token("customer")
+        params = _build_params(self.domain, "cmd_insert", token=self._require_token("customer"))
         response = await self._client.post(self.base_url, params=params, json=body)
         payload = _parse_response(response)
         service_id = payload.get("serviceid")
@@ -213,13 +248,18 @@ class AsyncNCCGestClient:
     async def update_service(self, serviceid: int, service: UpdateServicePayload) -> None:
         body: JSONDict = dict(service)
         body["serviceid"] = serviceid
-        body["token"] = self.token
-        params = _build_params(self.domain, "cmd_update", token=self.token)
+        body["token"] = self._require_token("customer")
+        params = _build_params(self.domain, "cmd_update", token=self._require_token("customer"))
         response = await self._client.post(self.base_url, params=params, json=body)
         _parse_response(response)
 
     async def get_customer_data(self, vat: str) -> List[CustomerDataItem]:
-        params = _build_params(self.domain, "cmd_customer", token=self.token, vat=vat)
+        params = _build_params(
+            self.domain,
+            "cmd_customer",
+            token=self._require_token("master"),
+            vat=vat,
+        )
         response = await self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
         data = payload.get("data", [])
@@ -228,10 +268,32 @@ class AsyncNCCGestClient:
         return data
 
     async def get_driver_data(self, driverid: int) -> List[DriverDataItem]:
-        params = _build_params(self.domain, "cmd_driver", token=self.token, driverid=driverid)
+        params = _build_params(
+            self.domain,
+            "cmd_driver",
+            token=self._require_token("master"),
+            driverid=driverid,
+        )
         response = await self._client.get(self.base_url, params=params)
         payload = _parse_response(response)
         data = payload.get("data", [])
         if not isinstance(data, list):
             raise NCCGestResponseError("Expected `data` to be a list.")
         return data
+
+    def _require_token(self, token_type: str) -> str:
+        if token_type == "customer":
+            if not self.customer_token:
+                raise NCCGestError(
+                    "Customer token is required for cmd_read/cmd_insert/cmd_update. "
+                    "Pass `customer_token=...` (or `token=...` for backward compatibility)."
+                )
+            return self.customer_token
+        if token_type == "master":
+            if not self.master_token:
+                raise NCCGestError(
+                    "Master token is required for cmd_customer/cmd_driver. "
+                    "Pass `master_token=...` (or `token=...` for backward compatibility)."
+                )
+            return self.master_token
+        raise NCCGestError("Unknown token type: " + token_type)
