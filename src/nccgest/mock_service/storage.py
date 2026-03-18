@@ -217,7 +217,12 @@ def list_services(
 
 def list_services_admin(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     rows = conn.execute("SELECT * FROM services ORDER BY date, time, id").fetchall()
-    return [dict(row) for row in rows]
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        item["driver"] = _driver_label_from_service(conn, item)
+        items.append(item)
+    return items
 
 
 def get_service(conn: sqlite3.Connection, serviceid: int) -> Optional[Dict[str, Any]]:

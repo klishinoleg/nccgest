@@ -32,6 +32,9 @@ def test_admin_login_and_list(tmp_path: Path) -> None:
         assert services.status_code == 200
         assert "Services" in services.text
         assert "customers" in services.text.lower()
+        assert "<th>Driver</th>" in services.text
+        assert "FCO / Aeroporto di Roma Fiumicino, Terminal 3" in services.text
+        assert "Confirmed" in services.text
 
 
 def test_admin_drivers_list_and_edit(tmp_path: Path) -> None:

@@ -14,6 +14,9 @@
     <th>Time</th>
     <th>Pickup</th>
     <th>Dropoff</th>
+    <th>Driver</th>
+    <th>Plate</th>
+    <th>Status</th>
     <th>Pax</th>
     <th>Subclass</th>
     <th></th>
@@ -25,8 +28,11 @@
     <td>{{ item.id }}</td>
     <td>{{ item.date }}</td>
     <td>{{ item.time }}</td>
-    <td>{{ item.pickup_address }}</td>
-    <td>{{ item.dropoff_address }}</td>
+    <td>{{ item.pickup }} / {{ item.pickup_address }}</td>
+    <td>{{ item.dropoff }} / {{ item.dropoff_address }}</td>
+    <td>{{ item.driver }}</td>
+    <td>{{ item.vehicle_plate }}</td>
+    <td>{{ item.status }}</td>
     <td>{{ item.paxname }}</td>
     <td>{{ item.subclass }}</td>
     <td class="d-flex gap-2">
@@ -38,7 +44,7 @@
   </tr>
   {% else %}
   <tr>
-    <td colspan="8">No data</td>
+    <td colspan="11">No data</td>
   </tr>
   {% endfor %}
   </tbody>
