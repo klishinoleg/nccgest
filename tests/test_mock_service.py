@@ -129,6 +129,14 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
         assert read_response.status_code == 200
         assert read_response.json()["success"] is True
 
+        wrong_customer_token = client.get(
+            "/api/rest_api.php",
+            params={**master_params, "cmd": "cmd_read", "start_date": "16/03/2026"},
+        )
+        assert wrong_customer_token.status_code == 200
+        assert wrong_customer_token.json()["success"] is False
+        assert wrong_customer_token.json()["error"] == "Invalid Token"
+
         wrong_token_response = client.get(
             "/api/rest_api.php",
             params={**customer_params, "cmd": "cmd_customer", "vat": "IT12345678901"},
@@ -166,6 +174,54 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
         assert update_response.status_code == 200
         assert update_response.json()["success"] is True
 
+        inserted_read = client.get(
+            "/api/rest_api.php",
+            params={
+                **customer_params,
+                "cmd": "cmd_read",
+                "start_date": "17/03/2026",
+                "end_date": "17/03/2026",
+                "paxname": "Alice Updated",
+            },
+        )
+        assert inserted_read.status_code == 200
+        inserted_items = inserted_read.json()["data"]
+        assert len(inserted_items) == 1
+        assert int(inserted_items[0]["customer_id"]) == 1
+        assert inserted_items[0]["customer"] == "NCCGEST SRLS"
+
+        external_driver_insert = client.post(
+            "/api/rest_api.php",
+            params={**customer_params, "cmd": "cmd_insert"},
+            json={
+                "pickup": "CIA",
+                "dropoff": "Roma",
+                "date": "17/03/2026",
+                "pickup_time": "12:00",
+                "pax": 1,
+                "paxname": "External Driver Pax",
+                "paxphone": "+39000999888",
+                "external_driver": "Partner Driver Name",
+            },
+        )
+        assert external_driver_insert.status_code == 200
+        assert external_driver_insert.json()["success"] is True
+
+        external_driver_read = client.get(
+            "/api/rest_api.php",
+            params={
+                **customer_params,
+                "cmd": "cmd_read",
+                "start_date": "17/03/2026",
+                "end_date": "17/03/2026",
+                "paxname": "External Driver Pax",
+            },
+        )
+        assert external_driver_read.status_code == 200
+        external_items = external_driver_read.json()["data"]
+        assert len(external_items) == 1
+        assert external_items[0]["driver"] == "Partner Driver Name"
+
         client.post("/admin/login", data={"username": "test", "password": "test"})
         service_admin = client.get(f"/admin/services/{serviceid}")
         assert service_admin.status_code == 200
@@ -187,6 +243,124 @@ def test_mock_rest_api_commands(tmp_path: Path) -> None:
         )
         assert driver_response.status_code == 200
         assert driver_response.json()["data"][0]["name"] == "Mario"
+
+
+def test_admin_crud_with_customer_driver_binding(tmp_path: Path) -> None:
+    app = create_app(_make_settings(tmp_path))
+    with TestClient(app) as client:
+        customer_params = {"dominio": "test", "token": "TEST_CUSTOMER_TOKEN"}
+        master_params = {"dominio": "test", "token": "TEST_MASTER_TOKEN"}
+        client.post("/admin/login", data={"username": "test", "password": "test"})
+
+        customer_create = client.post(
+            "/admin/customers/new",
+            data={
+                "ragsoc": "ACME TEST TRAVEL",
+                "address": "Via Roma 1",
+                "city": "Roma",
+                "province": "RM",
+                "postalcode": "00100",
+                "email": "acme@example.com",
+                "piva": "ITTEST000001",
+                "cf": "CFTEST000001",
+            },
+        )
+        assert customer_create.status_code == 200
+
+        customer_lookup = client.get(
+            "/api/rest_api.php",
+            params={**master_params, "cmd": "cmd_customer", "vat": "ITTEST000001"},
+        )
+        assert customer_lookup.status_code == 200
+        customer_data = customer_lookup.json()["data"][0]
+        customer_id = int(customer_data["id"])
+        assert customer_data["ragsoc"] == "ACME TEST TRAVEL"
+
+        generated = client.post(f"/admin/customers/{customer_id}/generate-token")
+        assert generated.status_code == 200
+        customer_edit_page = client.get(f"/admin/customers/{customer_id}")
+        assert customer_edit_page.status_code == 200
+        assert "Generate token" in customer_edit_page.text
+
+        driver_create = client.post(
+            "/admin/drivers/new",
+            data={
+                "id": "501",
+                "name": "John",
+                "lastname": "Doe",
+                "phone_number": "+39111222333",
+                "email": "john@example.com",
+                "latitude": "41.9",
+                "longitude": "12.5",
+                "speed": "0",
+                "datetime": "17/03/2026 10:00:00",
+            },
+        )
+        assert driver_create.status_code == 200
+
+        service_create = client.post(
+            "/admin/services/new",
+            data={
+                "date": "17/03/2026",
+                "time": "11:30",
+                "pickup": "FCO",
+                "pickup_address": "FCO",
+                "dropoff": "Rome",
+                "dropoff_address": "Via Test 1",
+                "pax": "2",
+                "paxname": "Binding Test Pax",
+                "paxphone": "+39000111222",
+                "subclass": "BINDING-001",
+                "servicetype": "!!! --- TEST --- !!!",
+                "cartype": "VAN (6 pax)",
+                "service_status": "2",
+                "customer_id": str(customer_id),
+                "ids_ccp": str(customer_id),
+                "ids_driver": "501",
+                "internal_driverid": "501",
+            },
+        )
+        assert service_create.status_code == 200
+
+        read_response = client.get(
+            "/api/rest_api.php",
+            params={
+                **customer_params,
+                "cmd": "cmd_read",
+                "start_date": "17/03/2026",
+                "end_date": "17/03/2026",
+                "paxname": "Binding Test Pax",
+            },
+        )
+        assert read_response.status_code == 200
+        services = read_response.json()["data"]
+        assert len(services) == 1
+        service = services[0]
+        assert service["customer_id"] == customer_id
+        assert service["customer"] == "ACME TEST TRAVEL"
+        assert service["driver"] == "John Doe - +39111222333"
+
+        service_id = int(service["id"])
+        service_delete = client.post(f"/admin/services/{service_id}/delete")
+        assert service_delete.status_code == 200
+
+        driver_delete = client.post("/admin/drivers/501/delete")
+        assert driver_delete.status_code == 200
+        driver_read = client.get(
+            "/api/rest_api.php",
+            params={**master_params, "cmd": "cmd_driver", "driverid": "501"},
+        )
+        assert driver_read.status_code == 200
+        assert driver_read.json()["data"] == []
+
+        customer_delete = client.post(f"/admin/customers/{customer_id}/delete")
+        assert customer_delete.status_code == 200
+        customer_read = client.get(
+            "/api/rest_api.php",
+            params={**master_params, "cmd": "cmd_customer", "vat": "ITTEST000001"},
+        )
+        assert customer_read.status_code == 200
+        assert customer_read.json()["data"] == []
 
 
 def test_sync_client_with_mock_service(tmp_path: Path) -> None:

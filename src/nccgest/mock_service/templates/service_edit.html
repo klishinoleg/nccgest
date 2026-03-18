@@ -3,11 +3,11 @@
 {% include "_admin_header.html" %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 m-0">Edit service #{{ service.id }}</h1>
+  <h1 class="h4 m-0">{{ form_title }}</h1>
   <a href="/admin/services" class="btn btn-outline-secondary">Back</a>
 </div>
 
-<form method="post" action="/admin/services/{{ service.id }}" class="card p-3">
+<form method="post" action="{{ form_action }}" class="card p-3">
   <div class="row g-2">
     {% for key, value in service.items() %}
       {% if key != "id" %}
@@ -18,6 +18,24 @@
           {% for enum_value, enum_label in enum_options[key] %}
           <option value="{{ enum_value }}" {% if value|string == enum_value %}selected{% endif %}>
             {{ enum_value }} - {{ enum_label }}
+          </option>
+          {% endfor %}
+        </select>
+        {% elif key == "customer_id" or key == "ids_ccp" %}
+        <select class="form-select form-select-sm" name="{{ key }}">
+          <option value="0">0 - None</option>
+          {% for customer in customers %}
+          <option value="{{ customer.id }}" {% if value|string == customer.id|string %}selected{% endif %}>
+            {{ customer.id }} - {{ customer.ragsoc }}
+          </option>
+          {% endfor %}
+        </select>
+        {% elif key == "ids_driver" or key == "internal_driverid" %}
+        <select class="form-select form-select-sm" name="{{ key }}">
+          <option value="0">0 - None</option>
+          {% for driver in drivers %}
+          <option value="{{ driver.id }}" {% if value|string == driver.id|string %}selected{% endif %}>
+            {{ driver.id }} - {{ driver.name }} {{ driver.lastname }} ({{ driver.phone_number }})
           </option>
           {% endfor %}
         </select>

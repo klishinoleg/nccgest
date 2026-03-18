@@ -2,7 +2,10 @@
 {% block content %}
 {% include "_admin_header.html" %}
 
-<h1 class="h4 mb-3">Services</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 m-0">Services</h1>
+  <a class="btn btn-sm btn-primary" href="/admin/services/new">Add service</a>
+</div>
 <table class="table table-striped table-bordered align-middle">
   <thead>
   <tr>
@@ -26,7 +29,12 @@
     <td>{{ item.dropoff_address }}</td>
     <td>{{ item.paxname }}</td>
     <td>{{ item.subclass }}</td>
-    <td><a class="btn btn-sm btn-outline-primary" href="/admin/services/{{ item.id }}">Edit</a></td>
+    <td class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-primary" href="/admin/services/{{ item.id }}">Edit</a>
+      <form method="post" action="/admin/services/{{ item.id }}/delete" onsubmit="return confirm('Delete service #{{ item.id }}?');">
+        <button class="btn btn-sm btn-outline-danger">Delete</button>
+      </form>
+    </td>
   </tr>
   {% else %}
   <tr>
@@ -36,4 +44,3 @@
   </tbody>
 </table>
 {% endblock %}
-

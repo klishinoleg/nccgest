@@ -2,7 +2,10 @@
 {% block content %}
 {% include "_admin_header.html" %}
 
-<h1 class="h4 mb-3">Drivers</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 m-0">Drivers</h1>
+  <a class="btn btn-sm btn-primary" href="/admin/drivers/new">Add driver</a>
+</div>
 <table class="table table-striped table-bordered align-middle">
   <thead>
   <tr>
@@ -22,7 +25,12 @@
     <td>{{ item.phone_number }}</td>
     <td>{{ item.email }}</td>
     <td>{{ item.datetime }}</td>
-    <td><a class="btn btn-sm btn-outline-primary" href="/admin/drivers/{{ item.id }}">Edit</a></td>
+    <td class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-primary" href="/admin/drivers/{{ item.id }}">Edit</a>
+      <form method="post" action="/admin/drivers/{{ item.id }}/delete" onsubmit="return confirm('Delete driver #{{ item.id }}?');">
+        <button class="btn btn-sm btn-outline-danger">Delete</button>
+      </form>
+    </td>
   </tr>
   {% else %}
   <tr>
@@ -32,4 +40,3 @@
   </tbody>
 </table>
 {% endblock %}
-

@@ -16,8 +16,18 @@ from starlette.middleware.sessions import SessionMiddleware
 from .seed import seed_if_empty
 from .settings import MockSettings
 from .storage import (
+    DRIVER_COLUMNS,
+    SERVICE_COLUMNS,
     connect,
+    create_customer,
+    create_driver,
+    customer_token_exists,
+    delete_customer,
+    delete_driver,
+    delete_service,
+    generate_customer_token,
     get_customer,
+    get_customer_by_token,
     get_driver,
     get_driver_by_id,
     get_service,
@@ -124,6 +134,33 @@ def _register_routes(app: FastAPI) -> None:
             active_nav="services",
         )
 
+    @app.get("/admin/services/new")
+    @login_required
+    async def admin_service_new(request: Request) -> Response:
+        db = request.app.state.db
+        service = _empty_service_form()
+        return _tpl(
+            request,
+            "service_edit.html",
+            page_title="Create Service",
+            form_title="Create service",
+            form_action="/admin/services/new",
+            service=service,
+            enum_options=SERVICE_ENUM_OPTIONS,
+            customers=list_customers(db),
+            drivers=list_drivers(db),
+            active_nav="services",
+        )
+
+    @app.post("/admin/services/new")
+    @login_required
+    async def admin_service_create(request: Request) -> RedirectResponse:
+        db = request.app.state.db
+        form = await request.form()
+        payload = dict(form)
+        insert_service(db, payload)
+        return RedirectResponse(url="/admin/services", status_code=303)
+
     @app.get("/admin/services/{serviceid}")
     @login_required
     async def admin_service_edit(request: Request, serviceid: int) -> Response:
@@ -135,8 +172,12 @@ def _register_routes(app: FastAPI) -> None:
             request,
             "service_edit.html",
             page_title="Edit Service",
+            form_title=f"Edit service #{serviceid}",
+            form_action=f"/admin/services/{serviceid}",
             service=service,
             enum_options=SERVICE_ENUM_OPTIONS,
+            customers=list_customers(db),
+            drivers=list_drivers(db),
             active_nav="services",
         )
 
@@ -152,6 +193,13 @@ def _register_routes(app: FastAPI) -> None:
         update_service(db, serviceid, payload)
         return RedirectResponse(url="/admin/services", status_code=303)
 
+    @app.post("/admin/services/{serviceid}/delete")
+    @login_required
+    async def admin_service_delete(request: Request, serviceid: int) -> RedirectResponse:
+        db = request.app.state.db
+        delete_service(db, serviceid)
+        return RedirectResponse(url="/admin/services", status_code=303)
+
     @app.get("/admin/drivers")
     @login_required
     async def admin_drivers(request: Request) -> Response:
@@ -165,6 +213,28 @@ def _register_routes(app: FastAPI) -> None:
             active_nav="drivers",
         )
 
+    @app.get("/admin/drivers/new")
+    @login_required
+    async def admin_driver_new(request: Request) -> Response:
+        return _tpl(
+            request,
+            "driver_edit.html",
+            page_title="Create Driver",
+            form_title="Create driver",
+            form_action="/admin/drivers/new",
+            driver={key: "" for key in list(DRIVER_COLUMNS.keys())},
+            active_nav="drivers",
+        )
+
+    @app.post("/admin/drivers/new")
+    @login_required
+    async def admin_driver_create(request: Request) -> RedirectResponse:
+        db = request.app.state.db
+        form = await request.form()
+        payload = dict(form)
+        create_driver(db, payload)
+        return RedirectResponse(url="/admin/drivers", status_code=303)
+
     @app.get("/admin/drivers/{driverid}")
     @login_required
     async def admin_driver_edit(request: Request, driverid: int) -> Response:
@@ -176,6 +246,8 @@ def _register_routes(app: FastAPI) -> None:
             request,
             "driver_edit.html",
             page_title="Edit Driver",
+            form_title=f"Edit driver #{driverid}",
+            form_action=f"/admin/drivers/{driverid}",
             driver=driver,
             active_nav="drivers",
         )
@@ -192,6 +264,13 @@ def _register_routes(app: FastAPI) -> None:
         update_driver(db, driverid, payload)
         return RedirectResponse(url="/admin/drivers", status_code=303)
 
+    @app.post("/admin/drivers/{driverid}/delete")
+    @login_required
+    async def admin_driver_delete(request: Request, driverid: int) -> RedirectResponse:
+        db = request.app.state.db
+        delete_driver(db, driverid)
+        return RedirectResponse(url="/admin/drivers", status_code=303)
+
     @app.get("/admin/customers")
     @login_required
     async def admin_customers(request: Request) -> Response:
@@ -205,6 +284,39 @@ def _register_routes(app: FastAPI) -> None:
             active_nav="customers",
         )
 
+    @app.get("/admin/customers/new")
+    @login_required
+    async def admin_customer_new(request: Request) -> Response:
+        return _tpl(
+            request,
+            "customer_edit.html",
+            page_title="Create Customer",
+            form_title="Create customer",
+            form_action="/admin/customers/new",
+            customer={
+                "id": "",
+                "ragsoc": "",
+                "address": "-",
+                "city": "-",
+                "province": "-",
+                "postalcode": "-",
+                "email": "",
+                "piva": "",
+                "cf": "",
+                "token": "",
+            },
+            active_nav="customers",
+        )
+
+    @app.post("/admin/customers/new")
+    @login_required
+    async def admin_customer_create(request: Request) -> RedirectResponse:
+        db = request.app.state.db
+        form = await request.form()
+        payload = dict(form)
+        create_customer(db, payload)
+        return RedirectResponse(url="/admin/customers", status_code=303)
+
     @app.get("/admin/customers/{customerid}")
     @login_required
     async def admin_customer_edit(request: Request, customerid: int) -> Response:
@@ -216,6 +328,8 @@ def _register_routes(app: FastAPI) -> None:
             request,
             "customer_edit.html",
             page_title="Edit Customer",
+            form_title=f"Edit customer #{customerid}",
+            form_action=f"/admin/customers/{customerid}",
             customer=customer,
             active_nav="customers",
         )
@@ -229,9 +343,24 @@ def _register_routes(app: FastAPI) -> None:
         update_customer(db, customerid, payload)
         return RedirectResponse(url="/admin/customers", status_code=303)
 
+    @app.post("/admin/customers/{customerid}/delete")
+    @login_required
+    async def admin_customer_delete(request: Request, customerid: int) -> RedirectResponse:
+        db = request.app.state.db
+        delete_customer(db, customerid)
+        return RedirectResponse(url="/admin/customers", status_code=303)
+
+    @app.post("/admin/customers/{customerid}/generate-token")
+    @login_required
+    async def admin_customer_generate_token(request: Request, customerid: int) -> RedirectResponse:
+        db = request.app.state.db
+        generate_customer_token(db, customerid)
+        return RedirectResponse(url=f"/admin/customers/{customerid}", status_code=303)
+
     @app.api_route("/api/rest_api.php", methods=["GET", "POST"])
     async def rest_api(request: Request) -> JSONResponse:
         db = request.app.state.db
+        settings: MockSettings = request.app.state.settings
         params = dict(request.query_params)
         cmd = params.get("cmd", "")
         token = params.get("token", "")
@@ -246,7 +375,10 @@ def _register_routes(app: FastAPI) -> None:
             "cmd_customer": "master",
             "cmd_driver": "master",
         }.get(cmd)
-        if not token_exists(db, token, dominio, required_token_type=cmd_token_type):
+        if cmd_token_type == "customer":
+            if dominio != settings.domain or not customer_token_exists(db, token):
+                return JSONResponse({"success": False, "error": "Invalid Token"})
+        elif not token_exists(db, token, dominio, required_token_type=cmd_token_type):
             return JSONResponse({"success": False, "error": "Invalid Token"})
 
         if cmd == "cmd_read":
@@ -278,6 +410,13 @@ def _register_routes(app: FastAPI) -> None:
                 return JSONResponse(
                     {"success": False, "error": "Missing required fields: " + ", ".join(missing)}
                 )
+            if cmd_token_type == "customer":
+                customer = get_customer_by_token(db, token)
+                if customer is None:
+                    return JSONResponse({"success": False, "error": "Invalid Token"})
+                customer_id = int(customer["id"])
+                payload["customer_id"] = customer_id
+                payload["ids_ccp"] = customer_id
             serviceid = insert_service(db, payload)
             return JSONResponse({"success": True, "serviceid": serviceid, "error": ""})
 
@@ -334,3 +473,46 @@ async def _extract_payload(request: Request) -> Dict[str, Any]:
             form = await request.form()
             data.update(dict(form))
     return data
+
+
+def _empty_service_form() -> Dict[str, Any]:
+    defaults: Dict[str, Any] = {}
+    for key in SERVICE_COLUMNS.keys():
+        if key == "id":
+            continue
+        if key in {"pax"}:
+            defaults[key] = 1
+        elif key in {
+            "bags",
+            "smallbags",
+            "pets",
+            "child_seat_1",
+            "child_seat_2",
+            "child_seat_3",
+            "service_status",
+            "cash",
+            "invoice_receipt",
+            "ids_supplier",
+            "ids_driver",
+            "ids_agente",
+            "ids_ccp",
+            "customer_id",
+            "internal_driverid",
+        }:
+            defaults[key] = 0
+        elif key in {
+            "price",
+            "vat",
+            "comm_cliente",
+            "impincassato",
+            "servincassato",
+            "incasso_serv",
+            "comm_driver",
+            "comm_agent",
+        }:
+            defaults[key] = 0.0
+        elif key == "status":
+            defaults[key] = "Confirmed"
+        else:
+            defaults[key] = ""
+    return defaults

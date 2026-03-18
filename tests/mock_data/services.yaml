@@ -15,6 +15,7 @@ customers:
     email: "info@example.com"
     piva: "IT12345678901"
     cf: "CF123456"
+    token: "TEST_CUSTOMER_TOKEN"
 
 drivers:
   - id: 101

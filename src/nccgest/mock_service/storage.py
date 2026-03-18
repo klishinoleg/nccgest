@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 import sqlite3
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -49,6 +50,7 @@ SERVICE_COLUMNS: Dict[str, str] = {
     "ids_driver": "INTEGER NOT NULL DEFAULT 0",
     "ids_agente": "INTEGER NOT NULL DEFAULT 0",
     "ids_ccp": "INTEGER NOT NULL DEFAULT 0",
+    "customer_id": "INTEGER NOT NULL DEFAULT 0",
     "internal_driverid": "INTEGER NOT NULL DEFAULT 0",
     "external_driver": "TEXT NOT NULL DEFAULT ''",
     "comm_driver": "REAL NOT NULL DEFAULT 0",
@@ -93,6 +95,7 @@ CUSTOMER_COLUMNS: Dict[str, str] = {
     "email": "TEXT NOT NULL DEFAULT ''",
     "piva": "TEXT NOT NULL DEFAULT ''",
     "cf": "TEXT NOT NULL DEFAULT ''",
+    "token": "TEXT NOT NULL DEFAULT ''",
 }
 
 DRIVER_COLUMNS: Dict[str, str] = {
@@ -165,6 +168,28 @@ def ensure_token(
     conn.commit()
 
 
+def customer_token_exists(conn: sqlite3.Connection, token: str) -> bool:
+    if not token:
+        return False
+    row = conn.execute(
+        "SELECT id FROM customers WHERE token = ? LIMIT 1",
+        (token,),
+    ).fetchone()
+    return row is not None
+
+
+def get_customer_by_token(conn: sqlite3.Connection, token: str) -> Optional[Dict[str, Any]]:
+    if not token:
+        return None
+    row = conn.execute(
+        "SELECT * FROM customers WHERE token = ? LIMIT 1",
+        (token,),
+    ).fetchone()
+    if row is None:
+        return None
+    return dict(row)
+
+
 def list_services(
     conn: sqlite3.Connection,
     start_date: str,
@@ -187,7 +212,7 @@ def list_services(
     query += " ORDER BY date, time, id"
 
     rows = conn.execute(query, args).fetchall()
-    return [service_row_to_api(dict(row)) for row in rows]
+    return [service_row_to_api(conn, dict(row)) for row in rows]
 
 
 def list_services_admin(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
@@ -200,6 +225,12 @@ def get_service(conn: sqlite3.Connection, serviceid: int) -> Optional[Dict[str, 
     if row is None:
         return None
     return dict(row)
+
+
+def delete_service(conn: sqlite3.Connection, serviceid: int) -> bool:
+    cur = conn.execute("DELETE FROM services WHERE id = ?", (serviceid,))
+    conn.commit()
+    return cur.rowcount > 0
 
 
 def insert_service(conn: sqlite3.Connection, payload: Dict[str, Any]) -> int:
@@ -220,13 +251,14 @@ def update_service(conn: sqlite3.Connection, serviceid: int, payload: Dict[str, 
         return False
 
     merged = dict(current)
-    normalized = _normalize_service_payload(payload)
+    normalized = _normalize_service_patch(payload)
     for key, value in normalized.items():
         if key in SERVICE_COLUMNS and key != "id":
             merged[key] = value
 
-    status_map = {0: "Canceled", 1: "Waiting", 2: "Confirmed"}
-    merged["status"] = status_map.get(_as_int(merged.get("service_status"), 2), "Confirmed")
+    if "service_status" in normalized:
+        status_map = {0: "Canceled", 1: "Waiting", 2: "Confirmed"}
+        merged["status"] = status_map.get(_as_int(merged.get("service_status"), 2), "Confirmed")
 
     fields = [k for k in SERVICE_COLUMNS.keys() if k != "id"]
     assignments = ", ".join(k + " = :" + k for k in fields)
@@ -272,6 +304,46 @@ def update_customer(conn: sqlite3.Connection, customerid: int, payload: Dict[str
     return True
 
 
+def create_customer(conn: sqlite3.Connection, payload: Dict[str, Any]) -> int:
+    data = {
+        "ragsoc": str(payload.get("ragsoc", "")),
+        "address": str(payload.get("address", "-")),
+        "city": str(payload.get("city", "-")),
+        "province": str(payload.get("province", "-")),
+        "postalcode": str(payload.get("postalcode", "-")),
+        "email": str(payload.get("email", "")),
+        "piva": str(payload.get("piva", "")),
+        "cf": str(payload.get("cf", "")),
+        "token": str(payload.get("token", "")),
+    }
+    cur = conn.execute(
+        """
+        INSERT INTO customers(ragsoc, address, city, province, postalcode, email, piva, cf, token)
+        VALUES (:ragsoc, :address, :city, :province, :postalcode, :email, :piva, :cf, :token)
+        """,
+        data,
+    )
+    conn.commit()
+    if cur.lastrowid is None:
+        raise RuntimeError("Unable to get inserted customer ID.")
+    return int(cur.lastrowid)
+
+
+def delete_customer(conn: sqlite3.Connection, customerid: int) -> bool:
+    cur = conn.execute("DELETE FROM customers WHERE id = ?", (customerid,))
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def generate_customer_token(conn: sqlite3.Connection, customerid: int) -> Optional[str]:
+    if get_customer(conn, customerid) is None:
+        return None
+    token = secrets.token_urlsafe(24)
+    conn.execute("UPDATE customers SET token = ? WHERE id = ?", (token, customerid))
+    conn.commit()
+    return token
+
+
 def get_driver_by_id(conn: sqlite3.Connection, driverid: int) -> List[Dict[str, Any]]:
     row = conn.execute("SELECT * FROM drivers WHERE id = ?", (driverid,)).fetchone()
     if row is None:
@@ -311,6 +383,43 @@ def update_driver(conn: sqlite3.Connection, driverid: int, payload: Dict[str, An
     return True
 
 
+def create_driver(conn: sqlite3.Connection, payload: Dict[str, Any]) -> int:
+    driverid = _as_int(payload.get("id"), 0)
+    if driverid <= 0:
+        row = conn.execute("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM drivers").fetchone()
+        driverid = int(row["next_id"]) if row is not None else 1
+    data = {
+        "id": driverid,
+        "name": str(payload.get("name", "")),
+        "lastname": str(payload.get("lastname", "")),
+        "phone_number": str(payload.get("phone_number", "")),
+        "email": str(payload.get("email", "")),
+        "latitude": str(payload.get("latitude", "")),
+        "longitude": str(payload.get("longitude", "")),
+        "speed": str(payload.get("speed", "")),
+        "datetime": str(payload.get("datetime", "")),
+    }
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO drivers(
+            id, name, lastname, phone_number, email, latitude, longitude, speed, datetime
+        )
+        VALUES (
+            :id, :name, :lastname, :phone_number, :email, :latitude, :longitude, :speed, :datetime
+        )
+        """,
+        data,
+    )
+    conn.commit()
+    return driverid
+
+
+def delete_driver(conn: sqlite3.Connection, driverid: int) -> bool:
+    cur = conn.execute("DELETE FROM drivers WHERE id = ?", (driverid,))
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def upsert_customers(conn: sqlite3.Connection, customers: Iterable[Dict[str, Any]]) -> None:
     for customer in customers:
         data = {k: customer.get(k, "") for k in CUSTOMER_COLUMNS.keys()}
@@ -318,9 +427,8 @@ def upsert_customers(conn: sqlite3.Connection, customers: Iterable[Dict[str, Any
             conn.execute(
                 """
                 INSERT OR REPLACE INTO customers(
-                    id, ragsoc, address, city, province, postalcode, email, piva, cf
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    id, ragsoc, address, city, province, postalcode, email, piva, cf, token
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     _as_int(data["id"], 0),
@@ -332,13 +440,15 @@ def upsert_customers(conn: sqlite3.Connection, customers: Iterable[Dict[str, Any
                     str(data["email"]),
                     str(data["piva"]),
                     str(data["cf"]),
+                    str(data["token"]),
                 ),
             )
         else:
             conn.execute(
                 """
-                INSERT INTO customers(ragsoc, address, city, province, postalcode, email, piva, cf)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO customers(
+                    ragsoc, address, city, province, postalcode, email, piva, cf, token
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(data["ragsoc"]),
@@ -349,6 +459,7 @@ def upsert_customers(conn: sqlite3.Connection, customers: Iterable[Dict[str, Any
                     str(data["email"]),
                     str(data["piva"]),
                     str(data["cf"]),
+                    str(data["token"]),
                 ),
             )
     conn.commit()
@@ -405,7 +516,10 @@ def count_services(conn: sqlite3.Connection) -> int:
     return int(row["cnt"]) if row is not None else 0
 
 
-def service_row_to_api(row: Dict[str, Any]) -> Dict[str, Any]:
+def service_row_to_api(conn: sqlite3.Connection, row: Dict[str, Any]) -> Dict[str, Any]:
+    driver_text = _driver_label_from_service(conn, row)
+    customer_id = _service_customer_id(row)
+    customer_name = _customer_name_by_id(conn, customer_id)
     return {
         "id": row["id"],
         "date": row["date"],
@@ -424,11 +538,11 @@ def service_row_to_api(row: Dict[str, Any]) -> Dict[str, Any]:
         "servicetype": row["servicetype"],
         "cartype": row["cartype"],
         "vehicle_plate": row["vehicle_plate"],
-        "driver": "",
+        "driver": driver_text,
         "external_driver": row.get("external_driver", ""),
         "ids_supplier": row.get("ids_supplier", ""),
-        "customer_id": row.get("ids_ccp", ""),
-        "customer": "",
+        "customer_id": customer_id,
+        "customer": customer_name,
         "price": row["price"],
         "vat": row["vat"],
         "service_note": row.get("service_note", ""),
@@ -460,9 +574,58 @@ def _normalize_service_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     status_map = {0: "Canceled", 1: "Waiting", 2: "Confirmed"}
     normalized["status"] = status_map.get(_as_int(normalized.get("service_status"), 2), "Confirmed")
+    if _as_int(normalized.get("customer_id"), 0) <= 0:
+        normalized["customer_id"] = _as_int(normalized.get("ids_ccp"), 0)
+    if _as_int(normalized.get("ids_ccp"), 0) <= 0:
+        normalized["ids_ccp"] = _as_int(normalized.get("customer_id"), 0)
+    if _as_int(normalized.get("internal_driverid"), 0) <= 0:
+        normalized["internal_driverid"] = _as_int(normalized.get("ids_driver"), 0)
+    if _as_int(normalized.get("ids_driver"), 0) <= 0:
+        normalized["ids_driver"] = _as_int(normalized.get("internal_driverid"), 0)
     for key in normalized.keys():
         if key not in NUMERIC_INT_FIELDS and key not in NUMERIC_FLOAT_FIELDS:
             normalized[key] = str(normalized[key])
+    return normalized
+
+
+def _normalize_service_patch(payload: Dict[str, Any]) -> Dict[str, Any]:
+    normalized: Dict[str, Any] = {}
+    alias_map = {
+        "pickup_time": "time",
+        "flight_train": "transport_number",
+        "flight_train_origin": "transport_from",
+    }
+    for key, value in payload.items():
+        target_key = alias_map.get(key, key)
+        if target_key in SERVICE_COLUMNS and target_key != "id":
+            normalized[target_key] = value
+
+    for key in list(normalized.keys()):
+        if key in NUMERIC_INT_FIELDS:
+            normalized[key] = _as_int(normalized[key], _as_int(_service_default_value(key), 0))
+            continue
+        if key in NUMERIC_FLOAT_FIELDS:
+            normalized[key] = _as_float(
+                normalized[key],
+                _as_float(_service_default_value(key), 0.0),
+            )
+            continue
+        normalized[key] = str(normalized[key])
+
+    if "service_status" in normalized:
+        status_map = {0: "Canceled", 1: "Waiting", 2: "Confirmed"}
+        normalized["status"] = status_map.get(
+            _as_int(normalized.get("service_status"), 2),
+            "Confirmed",
+        )
+    if "customer_id" in normalized and "ids_ccp" not in normalized:
+        normalized["ids_ccp"] = _as_int(normalized["customer_id"], 0)
+    if "ids_ccp" in normalized and "customer_id" not in normalized:
+        normalized["customer_id"] = _as_int(normalized["ids_ccp"], 0)
+    if "internal_driverid" in normalized and "ids_driver" not in normalized:
+        normalized["ids_driver"] = _as_int(normalized["internal_driverid"], 0)
+    if "ids_driver" in normalized and "internal_driverid" not in normalized:
+        normalized["internal_driverid"] = _as_int(normalized["ids_driver"], 0)
     return normalized
 
 
@@ -489,6 +652,7 @@ def _service_default_value(key: str) -> Any:
         "ids_driver": 0,
         "ids_agente": 0,
         "ids_ccp": 0,
+        "customer_id": 0,
         "internal_driverid": 0,
     }
     return defaults.get(key, "")
@@ -540,3 +704,39 @@ def _as_float(value: Any, default: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _customer_name_by_id(conn: sqlite3.Connection, customer_id: int) -> str:
+    if customer_id <= 0:
+        return ""
+    row = conn.execute("SELECT ragsoc FROM customers WHERE id = ?", (customer_id,)).fetchone()
+    if row is None:
+        return ""
+    return str(row["ragsoc"])
+
+
+def _service_customer_id(row: Dict[str, Any]) -> int:
+    customer_id = _as_int(row.get("customer_id"), 0)
+    if customer_id <= 0:
+        customer_id = _as_int(row.get("ids_ccp"), 0)
+    return customer_id
+
+
+def _driver_label_from_service(conn: sqlite3.Connection, row: Dict[str, Any]) -> str:
+    external_driver = str(row.get("external_driver", "")).strip()
+    driver_id = _as_int(row.get("ids_driver"), 0)
+    if driver_id <= 0:
+        driver_id = _as_int(row.get("internal_driverid"), 0)
+    if driver_id <= 0:
+        return external_driver
+    driver = get_driver(conn, driver_id)
+    if driver is None:
+        return external_driver
+    first_name = str(driver.get("name", "")).strip()
+    last_name = str(driver.get("lastname", "")).strip()
+    phone_raw = str(driver.get("phone_number", "")).strip()
+    phone = phone_raw[1:] if phone_raw.startswith("+") else phone_raw
+    full_name = (first_name + " " + last_name).strip()
+    if not full_name and not phone:
+        return external_driver
+    return (full_name + " - +" + phone).strip()

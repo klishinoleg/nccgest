@@ -16,6 +16,7 @@ class MockSettings:
     port: int = 8255
     session_secret: str = "nccgest-mock-session-secret"
     seed_file: str = "tests/mock_data/services.yaml"
+    domain: str = "test"
 
     @property
     def db_path(self) -> str:
@@ -36,5 +37,5 @@ class MockSettings:
             port=port,
             session_secret=os.getenv("NCCGEST_SESSION_SECRET", "nccgest-mock-session-secret"),
             seed_file=os.getenv("NCCGEST_SEED_FILE", "tests/mock_data/services.yaml"),
+            domain=os.getenv("NCCGEST_DOMAIN", "test"),
         )
-

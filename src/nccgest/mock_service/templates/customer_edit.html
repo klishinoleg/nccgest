@@ -3,11 +3,18 @@
 {% include "_admin_header.html" %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 m-0">Edit customer #{{ customer.id }}</h1>
-  <a href="/admin/customers" class="btn btn-outline-secondary">Back</a>
+  <h1 class="h4 m-0">{{ form_title }}</h1>
+  <div class="d-flex gap-2">
+    {% if customer.id %}
+    <form method="post" action="/admin/customers/{{ customer.id }}/generate-token">
+      <button class="btn btn-outline-secondary">Generate token</button>
+    </form>
+    {% endif %}
+    <a href="/admin/customers" class="btn btn-outline-secondary">Back</a>
+  </div>
 </div>
 
-<form method="post" action="/admin/customers/{{ customer.id }}" class="card p-3">
+<form method="post" action="{{ form_action }}" class="card p-3">
   <div class="row g-2">
     {% for key, value in customer.items() %}
       {% if key != "id" %}
@@ -23,4 +30,3 @@
   </div>
 </form>
 {% endblock %}
-

@@ -3,48 +3,25 @@
 {% include "_admin_header.html" %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 m-0">Edit driver #{{ driver.id }}</h1>
+  <h1 class="h4 m-0">{{ form_title }}</h1>
   <a href="/admin/drivers" class="btn btn-outline-secondary">Back</a>
 </div>
 
-<form method="post" action="/admin/drivers/{{ driver.id }}" class="card p-3">
+<form method="post" action="{{ form_action }}" class="card p-3">
   <div class="row g-2">
-    <div class="col-md-3">
-      <label class="form-label">Name</label>
-      <input class="form-control" name="name" value="{{ driver.name }}" required />
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Lastname</label>
-      <input class="form-control" name="lastname" value="{{ driver.lastname }}" required />
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Phone</label>
-      <input class="form-control" name="phone_number" value="{{ driver.phone_number }}" />
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Email</label>
-      <input class="form-control" name="email" value="{{ driver.email }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Latitude</label>
-      <input class="form-control" name="latitude" value="{{ driver.latitude }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Longitude</label>
-      <input class="form-control" name="longitude" value="{{ driver.longitude }}" />
-    </div>
-    <div class="col-md-2">
-      <label class="form-label">Speed</label>
-      <input class="form-control" name="speed" value="{{ driver.speed }}" />
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Datetime</label>
-      <input class="form-control" name="datetime" value="{{ driver.datetime }}" />
-    </div>
+    {% for key, value in driver.items() %}
+      <div class="col-md-4">
+        <label class="form-label">{{ key }}</label>
+        {% if key == "id" and value %}
+        <input class="form-control form-control-sm" name="{{ key }}" value="{{ value }}" readonly />
+        {% else %}
+        <input class="form-control form-control-sm" name="{{ key }}" value="{{ value }}" />
+        {% endif %}
+      </div>
+    {% endfor %}
   </div>
   <div class="mt-3">
     <button class="btn btn-primary">Save</button>
   </div>
 </form>
 {% endblock %}
-
