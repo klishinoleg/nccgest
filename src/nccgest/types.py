@@ -1,11 +1,12 @@
 """Type aliases for request/response payloads."""
 
-from typing import Any, Dict, List, TypedDict, Union
+from typing import Any, Dict, List, Literal, TypedDict, Union
 
 JSONDict = Dict[str, Any]
 JSONList = List[Any]
 IntOrStr = Union[int, str]
 FloatOrInt = Union[float, int]
+ServiceStatus = Literal["Canceled", "Waiting", "Confirmed"]
 
 
 class Passenger(TypedDict, total=False):
@@ -22,7 +23,7 @@ class ReadServiceItem(TypedDict, total=False):
     extra_stop: List[str]
     transport_number: str
     transport_from: str
-    status: str
+    status: ServiceStatus
     status_events: str
     pax: IntOrStr
     paxname: str

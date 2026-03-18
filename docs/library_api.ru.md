@@ -85,6 +85,8 @@ async with AsyncNCCGestClient(domain="...", token="...") as api:
 
 - `list[dict]` - список услуг (`payload["data"]`).
 - По уточнению поддержки NCCGEST: поле `driver` в `cmd_read` всегда строка (или пустая строка), не объект.
+- `status` в `cmd_read` — строка только из списка: `Canceled`, `Waiting`, `Confirmed`.
+- В типах библиотеки: `ServiceStatus = Literal["Canceled", "Waiting", "Confirmed"]`.
 
 Исключения:
 

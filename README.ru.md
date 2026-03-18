@@ -58,6 +58,17 @@ client = NCCGestClient(
 
 Обратная совместимость сохранена: `token=...` используется как для customer, так и для master.
 
+## Значения `status` в `cmd_read`
+
+Поле `status` в ответе `cmd_read` приходит строкой и может иметь только одно из значений:
+
+- `Canceled`
+- `Waiting`
+- `Confirmed`
+
+В типах библиотеки это зафиксировано строго:
+`ServiceStatus = Literal["Canceled", "Waiting", "Confirmed"]`.
+
 ## Быстрый старт (async)
 
 ```python

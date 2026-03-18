@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nccgest"
-version = "0.1.5"
+version = "0.1.6"
 description = "Sync and async Python client for NCCGEST REST API."
 readme = "README.md"
 license = { text = "MIT" }

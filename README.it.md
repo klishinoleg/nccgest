@@ -54,6 +54,17 @@ client = NCCGestClient(
 
 Compatibilita retroattiva: `token=...` viene usato per entrambi i tipi.
 
+## Valori `status` in `cmd_read`
+
+Il campo `status` nella risposta `cmd_read` e una stringa con uno dei valori:
+
+- `Canceled`
+- `Waiting`
+- `Confirmed`
+
+Nel typing della libreria e definito in modo stretto:
+`ServiceStatus = Literal["Canceled", "Waiting", "Confirmed"]`.
+
 ## Esempio rapido (async)
 
 ```python
